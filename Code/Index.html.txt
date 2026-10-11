@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+
+<style>
+    * { box-sizing: border-box; }
+
+    :root {
+      color-scheme: dark;
+      --bg: #101116;
+      --panel: #191a22;
+      --panel-alt: #20212b;
+      --border: #343542;
+      --text: #f4f4f8;
+      --muted: #a8a9b8;
+      --purple: #8b5cf6;
+      --purple-hover: #7544dc;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: linear-gradient(120deg, #28164f, #673ab7);
+      color: white;
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 28px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #8b5cf6;
+    }
+
+    .header-title { flex: 1 1 360px; }
+    header h1 { margin: 0 0 8px; font-size: 26px; }
+    header p { margin: 0; color: #e7ddff; }
+
+    .owner-card {
+      flex: 0 1 410px;
+      padding: 14px 18px;
+      background: rgba(15, 10, 28, 0.38);
+      border: 1px solid rgba(255,255,255,0.24);
+      border-radius: 12px;
+      line-height: 1.65;
+      overflow-wrap: anywhere;
+      font-size: 13px;
+    }
+
+    .owner-card .owner-heading {
+      font-size: 15px;
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #fff;
+    }
+
+    .owner-card a { color: #e5d7ff; text-decoration: none; }
+    .owner-card a:hover { text-decoration: underline; }
+
+    main { max-width: 1500px; margin: auto; padding: 24px; }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      background: var(--panel);
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+
+    .filters label {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: bold;
+      flex: 1;
+      min-width: 160px;
+      color: #dedee8;
+    }
+
+    input, select, button {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: #12131a;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    input:focus, select:focus {
+      outline: 2px solid var(--purple);
+      outline-offset: 1px;
+    }
+
+    button {
+      background: var(--purple);
+      color: white;
+      border: none;
+      cursor: pointer;
+      align-self: end;
+      font-weight: bold;
+    }
+
+    button:hover { background: var(--purple-hover); }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--panel);
+      padding: 22px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--purple);
+      box-shadow: 0 4px 14px #00000020;
+    }
+
+    .card h3 {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: normal;
+    }
+
+    .card .number { font-size: 30px; font-weight: bold; }
+
+    .table-container {
+      background: var(--panel);
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .table-header h2 { margin: 0; font-size: 19px; }
+    #search { min-width: 240px; }
+
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+
+    th, td {
+      text-align: left;
+      padding: 13px 12px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    th { background: #292238; color: #e5d7ff; }
+    tbody tr:hover { background: #23232e; }
+
+    .status {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 12px;
+      border: 1px solid transparent;
+    }
+
+    .status-sent {
+      background: #123d2b;
+      color: #7df0b1;
+      border-color: #23764f;
+    }
+
+    .status-failed {
+      background: #4a191d;
+      color: #ff9da5;
+      border-color: #8d3039;
+    }
+
+    .status-processing {
+      background: #4a3511;
+      color: #ffd479;
+      border-color: #8a641c;
+    }
+
+    .status-unknown {
+      background: #30313b;
+      color: #dedee8;
+      border-color: #4b4c59;
+    }
+
+    .message { padding: 24px; text-align: center; color: var(--muted); }
+
+    @media (max-width: 700px) {
+      main { padding: 14px; }
+      header { padding: 20px; }
+      .owner-card { flex-basis: 100%; }
+      #search { min-width: 0; width: 100%; }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-title">
+    <h1>HR Email Automation Dashboard</h1>
+    <p>Track job applications, sent emails and CV templates.</p>
+  </div>
+
+  <div class="owner-card">
+    <div class="owner-heading">Create &amp; Manage By — Rohit R. Adhav</div>
+    <div>Phone: <a href="tel:7507493780">7507493780</a></div>
+    <div>Email: <a href="mailto:rohitadhav7935@gmail.com">rohitadhav7935@gmail.com</a></div>
+    <div>Portfolio: <a href="https://sites.google.com/view/rohitadhav/home" target="_blank" rel="noopener">View Portfolio</a></div>
+    <div>GitHub: <a href="https://github.com/RohitAdhav7935" target="_blank" rel="noopener">RohitAdhav7935</a></div>
+    <div>LinkedIn: <a href="https://www.linkedin.com/in/rohitradhav" target="_blank" rel="noopener">View LinkedIn Profile</a></div>
+  </div>
+</header>
+
+<main>
+
+  <section class="filters">
+
+    <label>
+      Start Date
+      <input type="date" id="startDate">
+    </label>
+
+    <label>
+      End Date
+      <input type="date" id="endDate">
+    </label>
+
+    <label>
+      Company
+      <select id="company">
+        <option value="">All Companies</option>
+      </select>
+    </label>
+
+    <label>
+      Email Status
+      <select id="status">
+        <option value="">All Statuses</option>
+        <option value="Sent">Sent</option>
+        <option value="Failed">Failed</option>
+        <option value="Processing">Processing</option>
+      </select>
+    </label>
+
+    <button onclick="applyFilters()">Apply Filters</button>
+    <button onclick="resetFilters()">Reset</button>
+
+  </section>
+
+  <section class="cards">
+
+    <div class="card">
+      <h3>Total Applications</h3>
+      <div class="number" id="total">0</div>
+    </div>
+
+    <div class="card">
+      <h3>Emails Sent</h3>
+      <div class="number" id="sent">0</div>
+    </div>
+
+    <div class="card">
+      <h3>Failed Emails</h3>
+      <div class="number" id="failed">0</div>
+    </div>
+
+    <div class="card">
+      <h3>Companies Contacted</h3>
+      <div class="number" id="companies">0</div>
+    </div>
+
+    <div class="card">
+      <h3>CV Templates Used</h3>
+      <div class="number" id="cvs">0</div>
+    </div>
+
+  </section>
+
+  <section class="table-container">
+
+    <div class="table-header">
+      <h2>Application History</h2>
+
+      <input
+        type="search"
+        id="search"
+        placeholder="Search company, email or role..."
+        oninput="renderTable()"
+      >
+    </div>
+
+    <div id="tableMessage" class="message">
+      Loading application data...
+    </div>
+
+    <table id="applicationTable" hidden>
+      <thead>
+        <tr>
+          <th>Sent At</th>
+          <th>Company</th>
+          <th>HR Email</th>
+          <th>Job Role</th>
+          <th>CV Template</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+
+      <tbody id="tableBody"></tbody>
+    </table>
+
+  </section>
+
+</main>
+
+<script>
+  let allRecords = [];
+  let filteredRecords = [];
+
+  function loadDashboard() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        allRecords = data.records || [];
+
+        populateCompanies();
+        applyFilters();
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById("tableMessage").textContent =
+          "Unable to load data: " + error.message;
+      })
+      .getDashboardData();
+  }
+
+  function getValue(record, names) {
+    for (const name of names) {
+      if (record[name] !== undefined) {
+        return record[name];
+      }
+    }
+
+    return "";
+  }
+
+  function populateCompanies() {
+    const select = document.getElementById("company");
+
+    select.innerHTML =
+      '<option value="">All Companies</option>';
+
+    const companies = [
+      ...new Set(
+        allRecords
+          .map(r => getValue(r, ["Company Name"]).trim())
+          .filter(Boolean)
+      )
+    ].sort();
+
+    companies.forEach(function(company) {
+      const option = document.createElement("option");
+      option.value = company;
+      option.textContent = company;
+      select.appendChild(option);
+    });
+  }
+
+  function applyFilters() {
+    const start = document.getElementById("startDate").value;
+    const end = document.getElementById("endDate").value;
+    const company = document.getElementById("company").value;
+    const status = document.getElementById("status").value;
+
+    filteredRecords = allRecords.filter(function(record) {
+      const recordCompany =
+        getValue(record, ["Company Name"]).trim();
+
+      const recordStatus =
+        getValue(record, ["Email Status"]).trim();
+
+      const rawDate = getValue(record, ["Sent At", "Timestamp"]);
+
+      const date = rawDate ? new Date(rawDate) : null;
+
+      const dateKey = date && !isNaN(date)
+        ? date.toISOString().slice(0, 10)
+        : "";
+
+      if (start && (!dateKey || dateKey < start)) return false;
+      if (end && (!dateKey || dateKey > end)) return false;
+      if (company && recordCompany !== company) return false;
+      if (status && recordStatus !== status) return false;
+
+      return true;
+    });
+
+    updateCards();
+    renderTable();
+  }
+
+  function updateCards() {
+    const sent = filteredRecords.filter(
+      r => getValue(r, ["Email Status"]) === "Sent"
+    );
+
+    const failed = filteredRecords.filter(
+      r => getValue(r, ["Email Status"]) === "Failed"
+    );
+
+    const companies = new Set(
+      filteredRecords
+        .map(r => getValue(r, ["Company Name"]).trim())
+        .filter(Boolean)
+    );
+
+    const cvs = new Set(
+      filteredRecords
+        .map(r => getValue(r, ["Select CV Template"]).trim())
+        .filter(Boolean)
+    );
+
+    document.getElementById("total").textContent =
+      filteredRecords.length;
+
+    document.getElementById("sent").textContent =
+      sent.length;
+
+    document.getElementById("failed").textContent =
+      failed.length;
+
+    document.getElementById("companies").textContent =
+      companies.size;
+
+    document.getElementById("cvs").textContent =
+      cvs.size;
+  }
+
+  function renderTable() {
+    const query = document.getElementById("search")
+      .value.toLowerCase().trim();
+
+    const rows = filteredRecords.filter(function(record) {
+      return [
+        getValue(record, ["Company Name"]),
+        getValue(record, ["HR Email ID"]),
+        getValue(record, ["Job Role"]),
+        getValue(record, ["Select CV Template"])
+      ].join(" ").toLowerCase().includes(query);
+    });
+
+    const tbody = document.getElementById("tableBody");
+
+    tbody.replaceChildren();
+
+    rows.slice().reverse().forEach(function(record) {
+      const tr = document.createElement("tr");
+
+      const rawDate = getValue(record, ["Sent At", "Timestamp"]);
+      const date = rawDate ? new Date(rawDate) : null;
+
+      const formattedDate =
+        date && !isNaN(date)
+          ? date.toLocaleString()
+          : "—";
+
+      const values = [
+        formattedDate,
+        getValue(record, ["Company Name"]),
+        getValue(record, ["HR Email ID"]),
+        getValue(record, ["Job Role"]),
+        getValue(record, ["Select CV Template"]),
+        getValue(record, ["Email Status"])
+      ];
+
+      values.forEach(function(value, index) {
+        const td = document.createElement("td");
+
+        // The last column is the email status badge.
+        if (index === 5) {
+          const badge = document.createElement("span");
+          const normalizedStatus = String(value || "").trim().toLowerCase();
+          badge.className = "status " +
+            (normalizedStatus === "sent" ? "status-sent" :
+             normalizedStatus === "failed" ? "status-failed" :
+             normalizedStatus === "processing" ? "status-processing" :
+             "status-unknown");
+          badge.textContent = value || "Unknown";
+          td.appendChild(badge);
+        } else {
+          td.textContent = value || "—";
+        }
+
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("applicationTable").hidden =
+      rows.length === 0;
+
+    document.getElementById("tableMessage").textContent =
+      rows.length === 0
+        ? "No matching applications found."
+        : "Showing " + rows.length + " application(s).";
+
+    document.getElementById("tableMessage").hidden =
+      rows.length !== 0;
+  }
+
+  function resetFilters() {
+    document.getElementById("startDate").value = "";
+    document.getElementById("endDate").value = "";
+    document.getElementById("company").value = "";
+    document.getElementById("status").value = "";
+    document.getElementById("search").value = "";
+
+    applyFilters();
+  }
+
+  loadDashboard();
+</script>
+
+</body>
+</html>

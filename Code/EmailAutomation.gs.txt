@@ -1,0 +1,215 @@
+const CONFIG = {
+  SENDER_NAME: "Rohit Adhav",
+
+  PORTFOLIO:
+    "https://sites.google.com/view/rohitadhav/home",
+
+  LINKEDIN:
+    "https://www.linkedin.com/in/rohitradhav",
+
+  GITHUB:
+    "https://github.com/RohitAdhav7935",
+
+  // Map each Google Form dropdown option to its PDF.
+  CV_FILES: {
+    "Data Analyst CV": "1yeQTyb5O86Dts1vThi40zDq3_Y3QCRbY",
+
+    "Power BI Developer CV": "POWER_BI_FILE_ID",
+
+    "Business Analyst CV": "BUSINESS_ANALYST_FILE_ID",
+
+    "Data Engineer CV": "DATA_ENGINEER_FILE_ID",
+
+    "General Analyst CV": "GENERAL_ANALYST_FILE_ID"
+  }
+};
+
+
+function onFormSubmit(e) {
+  if (!e || !e.range) {
+    throw new Error(
+      "Run this function through the form-submit trigger."
+    );
+  }
+
+  const sheet = e.range.getSheet();
+  const row = e.range.getRow();
+
+  const headers = sheet
+    .getRange(1, 1, 1, sheet.getLastColumn())
+    .getValues()[0]
+    .map(h => String(h).trim());
+
+  function getColumn(name) {
+    const index = headers.indexOf(name);
+
+    if (index === -1) {
+      throw new Error("Missing column: " + name);
+    }
+
+    return index + 1;
+  }
+
+  const emailCol = getColumn("HR Email ID");
+  const companyCol = getColumn("Company Name");
+  const dateCol = getColumn("Date of Email");
+  const roleCol = getColumn("Job Role");
+  const cvCol = getColumn("Select CV Template");
+
+  // Create tracking columns if they don't exist.
+  function getOrCreateColumn(name) {
+    const existing = headers.indexOf(name);
+
+    if (existing !== -1) {
+      return existing + 1;
+    }
+
+    const newCol = sheet.getLastColumn() + 1;
+
+    sheet.getRange(1, newCol).setValue(name);
+    headers.push(name);
+
+    return newCol;
+  }
+
+  const statusCol = getOrCreateColumn("Email Status");
+  const sentCol = getOrCreateColumn("Sent At");
+  const errorCol = getOrCreateColumn("Error Details");
+
+  const lock = LockService.getScriptLock();
+
+  if (!lock.tryLock(30000)) {
+    throw new Error("Could not obtain processing lock.");
+  }
+
+  try {
+    const status = String(
+      sheet.getRange(row, statusCol).getValue()
+    ).trim();
+
+    if (status === "Sent") {
+      return;
+    }
+
+    sheet.getRange(row, statusCol).setValue("Processing");
+    sheet.getRange(row, errorCol).clearContent();
+
+    const email = String(
+      sheet.getRange(row, emailCol).getValue()
+    ).trim();
+
+    const company = String(
+      sheet.getRange(row, companyCol).getValue()
+    ).trim();
+
+    const role = String(
+      sheet.getRange(row, roleCol).getValue()
+    ).trim();
+
+    const selectedCV = String(
+      sheet.getRange(row, cvCol).getValue()
+    ).trim();
+
+    const applicationDate = sheet
+      .getRange(row, dateCol)
+      .getValue();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new Error("Invalid HR email address.");
+    }
+
+    if (!company || !role) {
+      throw new Error(
+        "Company Name and Job Role are required."
+      );
+    }
+
+    // Look up the PDF selected in the Google Form.
+    const cvFileId = CONFIG.CV_FILES[selectedCV];
+
+    if (!cvFileId || cvFileId.includes("_FILE_ID")) {
+      throw new Error(
+        "No valid PDF configured for: " + selectedCV
+      );
+    }
+
+    const cvFile = DriveApp.getFileById(cvFileId);
+
+const cvBlob = cvFile.getBlob();
+
+if (
+  cvFile.getMimeType() !== "application/pdf" &&
+  cvBlob.getContentType() !== "application/pdf"
+) {
+  throw new Error(
+    "Invalid CV file. Drive MIME type: " +
+    cvFile.getMimeType() +
+    ", Blob MIME type: " +
+    cvBlob.getContentType()
+  );
+}
+
+    const subject =
+      "Application for " + role +
+      " Opportunities | Rohit Adhav";
+
+    const body =
+      "Dear Hiring Team,\n\n" +
+
+      "I am interested in current or upcoming opportunities " +
+      "for " + role + " at " + company + ".\n\n" +
+
+      "With 2 years of experience, including experience at " +
+      "Siemens Energy India Limited, I bring hands-on expertise " +
+      "in Power BI, SQL, DAX, Power Query, Advanced Excel, " +
+      "Python, and reporting automation.\n\n" +
+
+      "Please find my updated resume attached for your " +
+      "consideration. I would appreciate the opportunity " +
+      "to discuss suitable openings.\n\n" +
+
+      "Thank you for your time.\n\n" +
+
+      "Best regards,\n" +
+      CONFIG.SENDER_NAME + "\n" +
+      "Phone: 7507493780\n" +
+      "Email: rohitadhav7935@gmail.com\n" +
+      "Portfolio: " + CONFIG.PORTFOLIO + "\n" +
+      "GitHub: " + CONFIG.GITHUB + "\n" +
+      "LinkedIn: " + CONFIG.LINKEDIN;
+
+    if (MailApp.getRemainingDailyQuota() < 1) {
+      throw new Error(
+        "Daily email quota exhausted."
+      );
+    }
+
+    MailApp.sendEmail({
+      to: email,
+      subject: subject,
+      body: body,
+      attachments: [
+  cvBlob.setName(cvFile.getName().endsWith(".pdf")
+    ? cvFile.getName()
+    : cvFile.getName() + ".pdf")
+],
+      name: CONFIG.SENDER_NAME
+    });
+
+    sheet.getRange(row, statusCol).setValue("Sent");
+    sheet.getRange(row, sentCol).setValue(new Date());
+    sheet.getRange(row, errorCol).clearContent();
+
+  } catch (error) {
+    sheet.getRange(row, statusCol).setValue("Failed");
+
+    sheet.getRange(row, errorCol).setValue(
+      String(error.message || error)
+    );
+
+    throw error;
+
+  } finally {
+    lock.releaseLock();
+  }
+}

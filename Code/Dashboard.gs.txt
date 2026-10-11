@@ -1,0 +1,68 @@
+const DASHBOARD_CONFIG = {
+  SPREADSHEET_ID: "1QubQVSEfzHIe11n3X9qZdF7nbyS6y6HL3Q2Ki5v3B1s",
+  SHEET_NAME: "Form Responses 1"
+};
+
+/**
+ * Opens the dashboard web page.
+ */
+function doGet() {
+  return HtmlService
+    .createHtmlOutputFromFile("Index")
+    .setTitle("HR Email Automation Dashboard")
+    .addMetaTag("viewport", "width=device-width, initial-scale=1");
+}
+
+/**
+ * Reads application records from Google Sheets.
+ */
+function getDashboardData() {
+  const spreadsheet = SpreadsheetApp.openById(
+    DASHBOARD_CONFIG.SPREADSHEET_ID
+  );
+
+  const sheet = spreadsheet.getSheetByName(
+    DASHBOARD_CONFIG.SHEET_NAME
+  );
+
+  if (!sheet) {
+    throw new Error(
+      "Sheet not found: " + DASHBOARD_CONFIG.SHEET_NAME
+    );
+  }
+
+  const values = sheet.getDataRange().getValues();
+
+  if (values.length < 2) {
+    return {
+      headers: [],
+      records: []
+    };
+  }
+
+  const headers = values[0].map(
+    value => String(value).trim()
+  );
+
+  const records = values.slice(1).map(row => {
+    const record = {};
+
+    headers.forEach((header, index) => {
+      const value = row[index];
+
+      record[header] =
+        value instanceof Date
+          ? value.toISOString()
+          : value === null || value === undefined
+            ? ""
+            : String(value);
+    });
+
+    return record;
+  });
+
+  return {
+    headers: headers,
+    records: records
+  };
+}
